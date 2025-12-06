@@ -51,6 +51,7 @@ export const validateFile = (
   const ext = path.extname(file.name).toLowerCase();
   const mimeToExt: Record<string, string[]> = {
     'image/jpeg': ['.jpg', '.jpeg'],
+    'image/jpg': ['.jpg', '.jpeg'],
     'image/png': ['.png'],
     'image/webp': ['.webp'],
   };

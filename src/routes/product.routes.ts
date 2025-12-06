@@ -14,6 +14,8 @@ import {
   updateProductValidation,
   ratingValidation,
 } from '../utils/productValidation';
+import { authenticate, authorize } from '../middleware/auth.middleware';
+import { UserRole } from '../entities/User';
 
 const router = Router();
 
@@ -35,25 +37,37 @@ router.get('/:id', getProductById);
 /**
  * @route   POST /api/products
  * @desc    Create a new product
- * @access  Public (but should be protected in production with admin auth)
+ * @access  Admin only
  * @body    title, description, price, category, stock_quantity, tags, image (file)
  */
-router.post('/', validate(createProductValidation), createProduct);
+router.post(
+  '/',
+  authenticate,
+  authorize(UserRole.ADMIN),
+  validate(createProductValidation),
+  createProduct
+);
 
 /**
  * @route   PUT /api/products/:id
  * @desc    Update a product
- * @access  Public (but should be protected in production with admin auth)
+ * @access  Admin only
  * @body    title, description, price, category, stock_quantity, tags, is_available, is_favorite, image (file, optional)
  */
-router.put('/:id', validate(updateProductValidation), updateProduct);
+router.put(
+  '/:id',
+  authenticate,
+  authorize(UserRole.ADMIN),
+  validate(updateProductValidation),
+  updateProduct
+);
 
 /**
  * @route   DELETE /api/products/:id
  * @desc    Delete a product
- * @access  Public (but should be protected in production with admin auth)
+ * @access  Admin only
  */
-router.delete('/:id', deleteProduct);
+router.delete('/:id', authenticate, authorize(UserRole.ADMIN), deleteProduct);
 
 /**
  * @route   POST /api/products/:id/rating
@@ -61,13 +75,13 @@ router.delete('/:id', deleteProduct);
  * @access  Public
  * @body    rating (0-5)
  */
-router.post('/:id/rating', validate(ratingValidation), updateProductRating);
+router.post('/:id/rating', validate(ratingValidation), authorize(UserRole.USER), updateProductRating);
 
 /**
  * @route   POST /api/products/:id/favorite
  * @desc    Toggle favorite status of a product
- * @access  Public
+ * @access  User only
  */
-router.post('/:id/favorite', toggleFavorite);
+router.post('/:id/favorite', authenticate, authorize(UserRole.USER), toggleFavorite);
 
 export default router;
