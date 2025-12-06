@@ -26,21 +26,26 @@ const getDatabaseConfig = () => {
   };
 };
 
+// Determine if we're in production (running compiled JS) or development (running TS)
+const isProduction = process.env.NODE_ENV === 'production';
+const fileExtension = isProduction ? 'js' : 'ts';
+const baseDir = isProduction ? 'dist' : 'src';
+
 export const AppDataSource = new DataSource({
   ...getDatabaseConfig(),
   synchronize: process.env.NODE_ENV === 'development', // Only in development!
   logging: process.env.NODE_ENV === 'development',
-  entities: ['src/entities/**/*.ts'],
-  migrations: ['src/migrations/**/*.ts'],
-  subscribers: ['src/subscribers/**/*.ts'],
+  entities: [`${baseDir}/entities/**/*.${fileExtension}`],
+  migrations: [`${baseDir}/migrations/**/*.${fileExtension}`],
+  subscribers: [`${baseDir}/subscribers/**/*.${fileExtension}`],
 });
 
 export const initializeDatabase = async (): Promise<void> => {
   try {
     await AppDataSource.initialize();
-    console.log('✅ Database connection established successfully');
+    console.log('Database connection established successfully');
   } catch (error) {
-    console.error('❌ Error during database initialization:', error);
+    console.error('Error during database initialization:', error);
     process.exit(1);
   }
 };
