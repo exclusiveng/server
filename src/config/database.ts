@@ -28,21 +28,20 @@ const getDatabaseConfig = () => {
   };
 };
 
-// Resolve entity/migration paths for both TS (dev) and JS (prod) builds
-const entities = [
-  path.join(process.cwd(), 'src/entities/**/*.ts'),
-  path.join(process.cwd(), 'dist/entities/**/*.js'),
-];
+const isProd = process.env.NODE_ENV === 'production';
 
-const migrations = [
-  path.join(process.cwd(), 'src/migrations/**/*.ts'),
-  path.join(process.cwd(), 'dist/migrations/**/*.js'),
-];
+// Use compiled JS in production; use TS in development
+const entities = isProd
+  ? [path.join(process.cwd(), 'dist/entities/**/*.js')]
+  : [path.join(process.cwd(), 'src/entities/**/*.ts')];
 
-const subscribers = [
-  path.join(process.cwd(), 'src/subscribers/**/*.ts'),
-  path.join(process.cwd(), 'dist/subscribers/**/*.js'),
-];
+const migrations = isProd
+  ? [path.join(process.cwd(), 'dist/migrations/**/*.js')]
+  : [path.join(process.cwd(), 'src/migrations/**/*.ts')];
+
+const subscribers = isProd
+  ? [path.join(process.cwd(), 'dist/subscribers/**/*.js')]
+  : [path.join(process.cwd(), 'src/subscribers/**/*.ts')];
 
 export const AppDataSource = new DataSource({
   ...getDatabaseConfig(),
