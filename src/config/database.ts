@@ -1,5 +1,6 @@
 import { DataSource } from 'typeorm';
 import dotenv from 'dotenv';
+import path from 'path';
 import logger from '../utils/logger';
 
 dotenv.config();
@@ -27,18 +28,29 @@ const getDatabaseConfig = () => {
   };
 };
 
-// Determine if we're in production (running compiled JS) or development (running TS)
-const isProduction = process.env.NODE_ENV === 'production';
-const fileExtension = isProduction ? 'js' : 'ts';
-const baseDir = isProduction ? 'dist' : 'src';
+// Resolve entity/migration paths for both TS (dev) and JS (prod) builds
+const entities = [
+  path.join(process.cwd(), 'src/entities/**/*.ts'),
+  path.join(process.cwd(), 'dist/entities/**/*.js'),
+];
+
+const migrations = [
+  path.join(process.cwd(), 'src/migrations/**/*.ts'),
+  path.join(process.cwd(), 'dist/migrations/**/*.js'),
+];
+
+const subscribers = [
+  path.join(process.cwd(), 'src/subscribers/**/*.ts'),
+  path.join(process.cwd(), 'dist/subscribers/**/*.js'),
+];
 
 export const AppDataSource = new DataSource({
   ...getDatabaseConfig(),
   synchronize: process.env.NODE_ENV === 'development', // Only in development!
   logging: process.env.NODE_ENV === 'development',
-  entities: [`${baseDir}/entities/**/*.${fileExtension}`],
-  migrations: [`${baseDir}/migrations/**/*.${fileExtension}`],
-  subscribers: [`${baseDir}/subscribers/**/*.${fileExtension}`],
+  entities,
+  migrations,
+  subscribers,
 });
 
 export const initializeDatabase = async (): Promise<void> => {
