@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from "typeorm";
 
-export class AddCartAndOrder1733513955000 implements MigrationInterface {
-    name = 'AddCartAndOrder1733513955000'
+export class AddCartAndOrder1734000000000 implements MigrationInterface {
+    name = 'AddCartAndOrder1734000000000'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
         // Create Carts Table
@@ -47,3 +47,4 @@ export class AddCartAndOrder1733513955000 implements MigrationInterface {
     }
 
 }
+
