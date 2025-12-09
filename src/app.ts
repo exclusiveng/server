@@ -15,6 +15,10 @@ dotenv.config();
 
 const app: Application = express();
 
+// Respect X-Forwarded-* headers when behind a proxy (e.g., Render, Heroku)
+// Needed for accurate rate limiting and client IP detection.
+app.set('trust proxy', 1);
+
 // HTTP request logger
 app.use(morgan('dev', { stream }));
 

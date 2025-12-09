@@ -55,6 +55,10 @@ export const AppDataSource = new DataSource({
 export const initializeDatabase = async (): Promise<void> => {
   try {
     await AppDataSource.initialize();
+    // In production, ensure pending migrations run so tables exist
+    if (process.env.NODE_ENV === 'production') {
+      await AppDataSource.runMigrations();
+    }
     logger.info('Database connection established successfully.');
   } catch (error) {
     logger.error('Error during database initialization:', error);
