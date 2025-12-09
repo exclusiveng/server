@@ -4,14 +4,19 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import fileUpload from 'express-fileupload';
 import dotenv from 'dotenv';
+import morgan from 'morgan';
 import path from 'path';
 import routes from './routes';
 import { errorHandler, notFoundHandler } from './middleware/error.middleware';
 import { sanitizeInput } from './middleware/validation.middleware';
+import logger, { stream } from './utils/logger';
 
 dotenv.config();
 
 const app: Application = express();
+
+// HTTP request logger
+app.use(morgan('dev', { stream }));
 
 // Security middleware
 app.use(helmet());
@@ -65,5 +70,7 @@ app.use('/api', routes);
 // Error handling
 app.use(notFoundHandler);
 app.use(errorHandler);
+
+logger.info('Application setup complete.');
 
 export default app;
