@@ -23,7 +23,9 @@ app.set('trust proxy', 1);
 app.use(morgan('dev', { stream }));
 
 // Security middleware
-app.use(helmet());
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" }
+}));
 
 // CORS configuration
 app.use(
