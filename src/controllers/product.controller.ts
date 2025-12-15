@@ -187,6 +187,14 @@ export const getProductById = async (req: Request, res: Response): Promise<void>
   try {
     const { id } = req.params;
 
+    if (!id) {
+      res.status(400).json({
+        status: 'error',
+        message: 'Product ID is required',
+      });
+      return;
+    }
+
     const product = await productRepository.findOne({ where: { id } });
 
     if (!product) {
@@ -218,6 +226,14 @@ export const updateProduct = async (req: Request, res: Response): Promise<void> 
     const { id } = req.params;
     const { title, description, price, category, stock_quantity, tags, is_available, is_favorite } =
       req.body;
+
+    if (!id) {
+      res.status(400).json({
+        status: 'error',
+        message: 'Product ID is required',
+      });
+      return;
+    }
 
     const product = await productRepository.findOne({ where: { id } });
 
@@ -297,6 +313,14 @@ export const deleteProduct = async (req: Request, res: Response): Promise<void> 
   try {
     const { id } = req.params;
 
+    if (!id) {
+      res.status(400).json({
+        status: 'error',
+        message: 'Product ID is required',
+      });
+      return;
+    }
+
     const product = await productRepository.findOne({ where: { id } });
 
     if (!product) {
@@ -307,12 +331,13 @@ export const deleteProduct = async (req: Request, res: Response): Promise<void> 
       return;
     }
 
-    // Delete product image
-    const imagePath = path.join(process.cwd(), 'uploads', 'products', path.basename(product.image_url));
-    deleteFile(imagePath);
+    // When soft-deleting, we typically don't delete the image file
+    // in case the product needs to be restored later.
+    // const imagePath = path.join(process.cwd(), 'uploads', 'products', path.basename(product.image_url));
+    // deleteFile(imagePath);
 
-    // Delete product from database
-    await productRepository.remove(product);
+    // Soft delete the product
+    await productRepository.softDelete(id);
 
     res.status(200).json({
       status: 'success',
@@ -334,6 +359,14 @@ export const updateProductRating = async (req: Request, res: Response): Promise<
   try {
     const { id } = req.params;
     const { rating } = req.body;
+
+    if (!id) {
+      res.status(400).json({
+        status: 'error',
+        message: 'Product ID is required',
+      });
+      return;
+    }
 
     const product = await productRepository.findOne({ where: { id } });
 
@@ -384,6 +417,14 @@ export const updateProductRating = async (req: Request, res: Response): Promise<
 export const toggleFavorite = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
+
+    if (!id) {
+      res.status(400).json({
+        status: 'error',
+        message: 'Product ID is required',
+      });
+      return;
+    }
 
     const product = await productRepository.findOne({ where: { id } });
 

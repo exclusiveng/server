@@ -75,7 +75,7 @@ router.delete('/:id', authenticate, authorize(UserRole.ADMIN), deleteProduct);
  * @access  Public
  * @body    rating (0-5)
  */
-router.post('/:id/rating', validate(ratingValidation), authorize(UserRole.USER), updateProductRating);
+router.post('/:id/rating', authenticate, validate(ratingValidation), authorize(UserRole.USER), updateProductRating);
 
 /**
  * @route   POST /api/products/:id/favorite
