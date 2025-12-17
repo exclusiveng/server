@@ -1,6 +1,6 @@
 import express, { Application } from 'express';
 import cors from 'cors';
-import helmet from 'helmet';
+// import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import fileUpload from 'express-fileupload';
 import dotenv from 'dotenv';
@@ -23,9 +23,9 @@ app.set('trust proxy', 1);
 app.use(morgan('dev', { stream }));
 
 // Security middleware
-app.use(helmet({
-  crossOriginResourcePolicy: { policy: "cross-origin" }
-}));
+// app.use(helmet({
+//   crossOriginResourcePolicy: { policy: "cross-origin" }
+// }));
 
 // CORS configuration
 app.use(
