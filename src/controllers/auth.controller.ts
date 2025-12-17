@@ -10,7 +10,7 @@ import { AuthRequest } from '../middleware/auth.middleware';
  */
 const generateToken = (user: User): string => {
   const secret = process.env.JWT_SECRET;
-  
+
   if (!secret) {
     throw new Error('JWT_SECRET is not defined in environment variables');
   }
@@ -41,7 +41,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
 
     // Check if user already exists
     const existingUser = await userRepository.findOne({ where: { email } });
-    
+
     if (existingUser) {
       errorResponse(res, 'User with this email already exists', 409);
       return;
@@ -165,3 +165,47 @@ export const getProfile = async (req: AuthRequest, res: Response): Promise<void>
     errorResponse(res, 'Failed to retrieve profile', 500);
   }
 };
+
+/**
+ * Update authenticated user profile
+ * PUT /api/auth/profile
+ */
+export const updateProfile = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    if (!req.user) {
+      errorResponse(res, 'User not authenticated', 401);
+      return;
+    }
+
+    const { firstName, lastName, address, city, state, phoneNumber } = req.body;
+
+    // Get user repository
+    const userRepository = AppDataSource.getRepository(User);
+
+    // Find user by ID
+    const user = await userRepository.findOne({ where: { id: req.user.id } });
+
+    if (!user) {
+      errorResponse(res, 'User not found', 404);
+      return;
+    }
+
+    // Update fields if provided
+    if (firstName) user.firstName = firstName;
+    if (lastName) user.lastName = lastName;
+    if (address !== undefined) user.address = address;
+    if (city !== undefined) user.city = city;
+    if (state !== undefined) user.state = state;
+    if (phoneNumber !== undefined) user.phoneNumber = phoneNumber;
+
+    // Save updated user
+    await userRepository.save(user);
+
+    // Return updated user profile
+    successResponse(res, user.toJSON(), 'Profile updated successfully');
+  } catch (error) {
+    console.error('Update profile error:', error);
+    errorResponse(res, 'Failed to update profile', 500);
+  }
+};
+

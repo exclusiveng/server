@@ -10,7 +10,7 @@ import { EntityManager } from 'typeorm';
 export class OrderController {
   private orderRepository = AppDataSource.getRepository(Order);
   private cartRepository = AppDataSource.getRepository(Cart);
-  
+
   // Initialize Checkout
   async checkout(req: Request, res: Response) {
     try {
@@ -32,8 +32,8 @@ export class OrderController {
       let totalAmount = 0;
       for (const item of cart.items) {
         if (item.product.stock_quantity < item.quantity) {
-          return res.status(400).json({ 
-            message: `Product ${item.product.title} is out of stock (Requested: ${item.quantity}, Available: ${item.product.stock_quantity})` 
+          return res.status(400).json({
+            message: `Product ${item.product.title} is out of stock (Requested: ${item.quantity}, Available: ${item.product.stock_quantity})`
           });
         }
         totalAmount += Number(item.product.price) * item.quantity;
@@ -94,11 +94,11 @@ export class OrderController {
   async verifyPayment(req: Request, res: Response) {
     try {
       const { reference } = req.body; // Paystack transaction reference (which we set to order.id or paystack's own ref)
-      
+
       // Look up order
       // Note: If we used order.id as reference, we can find it directly. 
       // If we used Paystack's generated reference, we need to verify with Paystack to get metadata.order_id
-      
+
       // Let's verify with Paystack first
       const paystackUrl = process.env.PAYSTACK_API_URL || 'https://api.paystack.co';
       const verifyResponse = await axios.get(
@@ -109,7 +109,7 @@ export class OrderController {
       );
 
       const data = verifyResponse.data.data;
-      
+
       if (data.status !== 'success') {
         return res.status(400).json({ message: 'Payment verification failed' });
       }
@@ -119,8 +119,8 @@ export class OrderController {
       // Transactional Update
       await AppDataSource.transaction(async (transactionalEntityManager: EntityManager) => {
         const order = await transactionalEntityManager.findOne(Order, {
-            where: { id: orderId },
-            relations: ['items', 'items.product', 'user']
+          where: { id: orderId },
+          relations: ['items', 'items.product', 'user']
         });
 
         if (!order) throw new Error('Order not found');
@@ -128,22 +128,22 @@ export class OrderController {
 
         // Decrement Stock & Validate again
         for (const item of order.items) {
-            const product = await transactionalEntityManager.findOne(Product, { 
-                where: { id: item.product.id },
-                lock: { mode: 'pessimistic_write' } // Lock row to prevent race conditions
-            });
-            
-            if (!product) throw new Error(`Product ${item.product_title} not found`);
-            
-            if (product.stock_quantity < item.quantity) {
-                // Determine strategy: Fail whole order or Partial?
-                // For now, fail entire order processing here would require refund manual process in reality.
-                // But for now let's throw error.
-                throw new Error(`Insufficient stock for ${product.title} during payment finalization`);
-            }
+          const product = await transactionalEntityManager.findOne(Product, {
+            where: { id: item.product.id },
+            lock: { mode: 'pessimistic_write' } // Lock row to prevent race conditions
+          });
 
-            product.stock_quantity -= item.quantity;
-            await transactionalEntityManager.save(product);
+          if (!product) throw new Error(`Product ${item.product_title} not found`);
+
+          if (product.stock_quantity < item.quantity) {
+            // Determine strategy: Fail whole order or Partial?
+            // For now, fail entire order processing here would require refund manual process in reality.
+            // But for now let's throw error.
+            throw new Error(`Insufficient stock for ${product.title} during payment finalization`);
+          }
+
+          product.stock_quantity -= item.quantity;
+          await transactionalEntityManager.save(product);
         }
 
         // Update Order
@@ -153,19 +153,25 @@ export class OrderController {
 
         // Clear Cart
         const cart = await transactionalEntityManager.findOne(Cart, {
-            where: { user: { id: order.user.id } },
-            relations: ['items']
+          where: { user: { id: order.user.id } },
+          relations: ['items']
         });
-        
+
         if (cart) {
-            cart.items = []; // Or remove using delete
-            await transactionalEntityManager.getRepository(Cart).save(cart);
-            // Actually needing to delete cartItems specifically
-            await transactionalEntityManager.delete('cart_items', { cart: { id: cart.id } });
+          cart.items = []; // Or remove using delete
+          await transactionalEntityManager.getRepository(Cart).save(cart);
+          // Actually needing to delete cartItems specifically
+          await transactionalEntityManager.delete('cart_items', { cart: { id: cart.id } });
         }
       });
 
-      return res.json({ message: 'Payment verified and order processed successfully' });
+      return res.json({
+        message: 'Payment verified and order processed successfully',
+        order: await AppDataSource.getRepository(Order).findOne({
+          where: { id: orderId },
+          relations: ['items', 'items.product']
+        })
+      });
 
     } catch (error: any) {
       console.error('Verify Payment Error:', error.message);
@@ -175,17 +181,56 @@ export class OrderController {
 
   // Get User Orders
   async getUserOrders(req: Request, res: Response) {
-      try {
-          // @ts-ignore
-          const userId = req.user.id;
-          const orders = await this.orderRepository.find({
-              where: { user: { id: userId } },
-              order: { created_at: 'DESC' },
-              relations: ['items']
-          });
-          return res.json(orders);
-      } catch (error) {
-          return res.status(500).json({ message: 'Error fetching orders' });
+    try {
+      // @ts-ignore
+      const userId = req.user.id;
+      const orders = await this.orderRepository.find({
+        where: { user: { id: userId } },
+        order: { created_at: 'DESC' },
+        relations: ['items', 'items.product']
+      });
+      return res.json(orders);
+    } catch (error) {
+      return res.status(500).json({ message: 'Error fetching orders' });
+    }
+  }
+
+  // Get All Orders (Admin)
+  async getAllOrders(_req: Request, res: Response) {
+    try {
+      const orders = await this.orderRepository.find({
+        order: { created_at: 'DESC' },
+        relations: ['items', 'items.product', 'user']
+      });
+      return res.json(orders);
+    } catch (error) {
+      console.error('Error fetching all orders:', error);
+      return res.status(500).json({ message: 'Error fetching all orders' });
+    }
+  }
+
+  // Update Order Status (Admin)
+  async updateOrderStatus(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const { status } = req.body;
+
+      if (!Object.values(OrderStatus).includes(status)) {
+        return res.status(400).json({ message: 'Invalid status' });
       }
+
+      const order = await this.orderRepository.findOne({ where: { id } });
+      if (!order) {
+        return res.status(404).json({ message: 'Order not found' });
+      }
+
+      order.status = status;
+      await this.orderRepository.save(order);
+
+      return res.json({ message: 'Order status updated successfully', order });
+    } catch (error) {
+      console.error('Error updating order status:', error);
+      return res.status(500).json({ message: 'Error updating order status' });
+    }
   }
 }
